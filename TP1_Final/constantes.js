@@ -20,3 +20,12 @@ var PI = Math.PI;
 var floor = Math.floor;
 var sqrt = Math.sqrt;
 var pow = Math.pow;
+
+//========================================================================
+//var colorCuerpo = [215/255, 211/255, 186/255];
+var colorCuerpo = [67/255, 82/255, 116/255];
+var colorCola = [215/255, 211/255, 186/255];
+var colorRotores = [43/255, 45/255, 47/255];
+var colorHelices = [87/255, 89/255, 93/255];
+var colorPatines = [0, 0, 0];
+var colorControles = [151/255, 21/255, 0/255];

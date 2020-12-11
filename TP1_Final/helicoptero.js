@@ -54,7 +54,7 @@ function Helicoptero(){
 	}
 	var supCuerpo = new SuperficieBarrido(formaCuerpo, recorridoZ, escaladoCuerpo);
 
-	this.cuerpo = new Objeto3D(supCuerpo, 50, 50, [215/255, 211/255, 186/255]);
+	this.cuerpo = new Objeto3D(supCuerpo, 50, 50, colorCuerpo);
 
 	var heliceDD = new HeliceDerecha();
 	heliceDD.setEscala(1.4, 1.4, 1.4);
@@ -221,7 +221,7 @@ class HeliceDerecha {
 
 		var cilindro = new SuperficieBarrido(formaCirculo, recorridoX, escaladoTapas);
 
-		this.rotor = new Objeto3D(cilindro, 20, 20, [43/255, 45/255, 47/255]);
+		this.rotor = new Objeto3D(cilindro, 20, 20, colorRotores);
 
 		//------------------------------------Brazo------------------------------------
 		var m1 = 0.00666*magia;
@@ -266,7 +266,7 @@ class HeliceDerecha {
 		}
 
 		var seccionCono = new SuperficieBarrido(formaElipse, recorridoZ0, escaladoLineal);
-		var brazo = new Objeto3D(seccionCono, 20, 20, [87/255, 89/255, 93/255]);
+		var brazo = new Objeto3D(seccionCono, 20, 20, colorHelices);
 
 		this.rotor.agregarHijo(brazo);
 
@@ -341,7 +341,7 @@ class HeliceDerecha {
 
 		var toroEliptico = new SuperficieBarrido(formaO, recorridoCirculo);
 
-		var aro = new Objeto3D(toroEliptico, 20, 20, [151/255, 21/255, 0/255]);
+		var aro = new Objeto3D(toroEliptico, 20, 20, colorControles);
 
 		aro.setPosicion(0, 0, 0.075 + 0.02);
 		brazo.agregarHijo(aro);
@@ -420,7 +420,7 @@ class HeliceDerecha {
 
 		var cantAspas = 10;
 		for (var i = 0; i < cantAspas; i++){
-			var aspa = new Objeto3D(poligono, 3, 3, [87/255, 89/255, 93/255]);
+			var aspa = new Objeto3D(poligono, 3, 3, colorHelices);
 			aspa.setRotacion(0, 2*i*PI/cantAspas, 0);
 			eje.agregarHijo(aspa);
 		}
@@ -537,13 +537,13 @@ class PatinDeAterrizaje {
 
 		var cilindro = new SuperficieBarrido(formaCirculo, recorridoY0);
 
-		var tuboD = new Objeto3D(cilindro, 20, 20, [0, 0, 0]);
+		var tuboD = new Objeto3D(cilindro, 20, 20, colorPatines);
 	
 		tuboD.setPosicion(0.05, 0, 0);
 
 		this.centro.agregarHijo(tuboD);
 
-		var tuboT = new Objeto3D(cilindro, 20, 20, [0, 0, 0]);
+		var tuboT = new Objeto3D(cilindro, 20, 20, colorPatines);
 	
 		tuboT.setPosicion(-0.05, 0, 0);
 
@@ -567,7 +567,7 @@ class PatinDeAterrizaje {
 
 		var cilindroCurvo = new SuperficieBarrido(formaCirculo, recorridoPie, escaladoTapas);
 
-		var pie = new Objeto3D(cilindroCurvo, 50, 20, [0, 0, 0]);
+		var pie = new Objeto3D(cilindroCurvo, 50, 20, colorPatines);
 
 		pie.setPosicion(0, -0.15*escala, 0);
 
@@ -643,12 +643,12 @@ class Cola {
 		}
 		var supCaja = new SuperficieBarrido(formaRectangulo, recorridomX, escalaCaja);
 
-		var canioD = new Objeto3D(supCaja, 20, 20, [215/255, 211/255, 186/255]);
+		var canioD = new Objeto3D(supCaja, 20, 20, colorCola);
 
 		canioD.setPosicion(0, 0, 0.02);
 		this.centro.agregarHijo(canioD);
 
-		var canioI = new Objeto3D(supCaja, 20, 20, [215/255, 211/255, 186/255]);
+		var canioI = new Objeto3D(supCaja, 20, 20, colorCola);
 
 		canioI.setPosicion(0, 0, -0.02);
 		this.centro.agregarHijo(canioI);
@@ -691,7 +691,7 @@ class Cola {
 
 		var cilindro = new SuperficieBarrido(formaCirculo, recorridoZ);
 
-		var semieje = new Objeto3D(cilindro, 20, 20, [43/255, 45/255, 47/255]);
+		var semieje = new Objeto3D(cilindro, 20, 20, colorRotores);
 
 		semieje.setEscala(0.006, 0.006, 0.04);
 		semieje.setPosicion(-0.225, 0, 0);
@@ -736,12 +736,12 @@ class Cola {
 
 		var supPlato = new SuperficieBarrido(formaCaja, recorridoCorto, escaladoTapas);
 
-		var aletaD = new Objeto3D(supPlato, 20, 20, [151/255, 21/255, 0/255]);
+		var aletaD = new Objeto3D(supPlato, 20, 20, colorControles);
 		aletaD.setPosicion(-0.225, 0, 0.04);
 		this.aletaD = aletaD;
 		this.centro.agregarHijo(aletaD);
 
-		var aletaI = new Objeto3D(supPlato, 20, 20, [151/255, 21/255, 0/255]);
+		var aletaI = new Objeto3D(supPlato, 20, 20, colorControles);
 		aletaI.setPosicion(-0.225, 0, -0.04);
 		this.aletaI = aletaI;
 		this.centro.agregarHijo(aletaI);
