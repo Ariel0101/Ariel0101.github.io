@@ -59,7 +59,7 @@ function Camara(){
 
 			case 2:
 				var rotY = heli.getYaw();
-				var eye = vec3.fromValues(0, 0, 0.25);
+				var eye = vec3.fromValues(0, 0.05, 0.25);
 
 				vec3.rotateY(eye, eye, [0,0,0], rotY);
 				break;

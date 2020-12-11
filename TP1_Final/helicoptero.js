@@ -42,12 +42,12 @@ function Helicoptero(){
 		if (v == 1){
 			return [0,0,0];
 		}
-		if (v < 0.2){
-			var aux = (sqrt((pow(0.3,2))-(pow(v-0.3,2))) + 0.7);
+		if (v < 0.5){
+			var aux = (sqrt((pow(0.5,2))-(pow(v-0.5,2))) + 0.5);
 			return [aux, aux, aux];
 		}
-		if (v > 0.8){
-			var aux = (sqrt((pow(0.3,2))-(pow(v-0.7,2))) + 0.7);
+		if (v > 0.5){
+			var aux = (sqrt((pow(0.5,2))-(pow(v-0.5,2))) + 0.5);
 			return [aux, aux, aux];
 		}
 		return [1,1,1];
