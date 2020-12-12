@@ -10,11 +10,11 @@ function ControlHelicoptero(){
 
 
 	var altitudeInertia=0.01;
-	var speedInertia=0.1;
+	var speedInertia=0.5;
 	var angleInertia=0.02;
 
 	var deltaAltitude=0.1;
-	var deltaSpeed=0.0005;
+	var deltaSpeed=0.00625;
 	var deltaAngle=0.03;
 
 
