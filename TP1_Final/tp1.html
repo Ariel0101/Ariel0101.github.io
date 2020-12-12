@@ -11,6 +11,7 @@
 		<script src="objeto3d.js"></script>
 		<script src="helicoptero.js"></script>
 		<script src="heightMap.js"></script>
+		<script src="helipuerto.js"></script>
 		<title></title>
 		<style>
 			html{
@@ -276,6 +277,10 @@
 					helicoptero = new Helicoptero();
 					helicoptero.setEscala(0.3, 0.3, 0.3);
 					objetos.push(helicoptero);
+
+					var helipuerto = new Helipuerto(0.3, 0.5, 0.3);
+					helipuerto.setPosicion(0, 2 - 0.029, 0);
+					objetos.push(helipuerto);
 					
 
 					terreno = new HeightMap(15, 15, 128, 128);

@@ -29,3 +29,5 @@ var colorRotores = [43/255, 45/255, 47/255];
 var colorHelices = [87/255, 89/255, 93/255];
 var colorPatines = [0, 0, 0];
 var colorControles = [151/255, 21/255, 0/255];
+var colorHelipuerto = [36/255, 36/255, 36/255];
+var colorBase = [20/255, 100/255, 20/255];
