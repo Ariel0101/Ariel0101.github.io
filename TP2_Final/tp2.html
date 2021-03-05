@@ -1,0 +1,734 @@
+<!doctype html>
+<html>
+	<head>
+		<script src="js/jquery.js"></script>
+		<script src="js/gl-matrix.js"></script>
+		<script src="constantes.js"></script>
+		<script src="superficies.js"></script>
+		<script src="curvas.js"></script>
+		<script src="controlHelicoptero.js"></script>
+		<script src="camara.js"></script>
+		<script src="objeto3d.js"></script>
+		<script src="helicoptero.js"></script>
+		<script src="mascaraHM.js"></script>
+		<script src="heightMap.js"></script>
+		<script src="agua.js"></script>
+		<script src="helipuerto.js"></script>
+		<title></title>
+		<style>
+			html{
+				height: 100%;
+			}
+			body{
+				padding: 0;
+				margin: 0;
+				height: 100%;;
+			}
+			#my-canvas{
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+
+		<center>    		            
+			<canvas id="my-canvas" width = "2000" height="1600">
+				Your browser does not support the HTML5 canvas element.
+			</canvas>    		
+		</center>
+
+		<script type="text/javascript" src="js/gl-matrix.js"></script>
+		
+		<script id="shader-vs" type="x-shader/x-vertex">
+
+			precision highp float;
+
+			attribute vec3 aVertexPosition;
+			attribute vec3 aVertexNormal;
+			attribute vec2 aUv;
+
+			uniform mat4 modelMatrix;
+			uniform mat4 viewMatrix;
+			uniform mat4 projMatrix;
+			uniform mat3 normalMatrix;
+
+			varying vec3 vNormal;    
+			varying vec3 vPosWorld;
+			varying vec2 uv;
+
+			void main(void) {
+
+				vec4 worldPos = modelMatrix * vec4(aVertexPosition, 1.0);
+
+				gl_Position = projMatrix * viewMatrix * worldPos;
+
+				vPosWorld = worldPos.xyz;
+				vNormal = normalize(normalMatrix * aVertexNormal);
+				uv = aUv;
+				
+			}
+		</script>
+
+		<script id="shader-fs" type="x-shader/x-fragment">
+			precision highp float;
+
+			varying vec3 vPosWorld;
+			varying vec3 vNormal;
+			varying vec2 uv;
+
+			uniform vec3 RGB;
+
+			uniform vec3 lightVec;
+			uniform vec3 ambientLighting;
+			uniform vec3 lightColor;
+
+			uniform bool uUseLighting;
+
+			uniform bool uUseTexture;
+			uniform sampler2D sampler;
+
+			void main(void) {
+
+				vec3 direction = normalize(lightVec - vPosWorld);
+				float diffColor = max(dot(vNormal, direction), 0.0);
+				vec3 color = lightColor * diffColor + ambientLighting;
+
+				color.x *= RGB.x;
+				color.y *= RGB.y;
+				color.z *= RGB.z;
+
+
+				if (uUseTexture){
+					vec4 textureColor = texture2D(sampler, uv);
+					color = textureColor.xyz;
+				}
+
+				if (uUseLighting)
+					gl_FragColor = vec4(color,1.0);
+				else
+					gl_FragColor = vec4(0.7,0.7,0.7,1.0);
+			}
+		</script>
+
+		<script id="shader-vs-HM" type="x-shader/x-vertex">
+
+			attribute vec3 aVertexPosition;   //posicion (x,y,z)
+			attribute vec3 aVertexNormal;     //vector normal (x,y,z)
+			attribute vec2 aUv;         //coordenadas de texture (x,y)  x e y (en este caso) van de 0 a 1
+
+			uniform mat4 modelMatrix;     // matriz de modelado
+			uniform mat4 viewMatrix;     // matriz de vista
+			uniform mat4 projMatrix;     // matriz de proyección
+			uniform mat3 normalMatrix;     // matriz de normales
+							
+			uniform float time;                 // tiempo en segundos
+
+			uniform float a;
+			uniform float b;
+			
+			uniform sampler2D uSampler;         // sampler de textura de la tierra
+
+			varying vec3 vPosWorld;
+			varying vec3 vNormal;
+			varying highp vec2 vUv;
+
+			varying float altura;
+			
+			
+			const float PI = 3.141592653;
+			const float epsilon = 0.01;
+
+			const float amplitud = 4.0;
+
+			void main(void) {
+						
+				vec3 position = aVertexPosition;
+				vec3 normal = aVertexNormal;
+				vec2 uv = vec2(aUv.s + a, aUv.t + b);
+
+				float uvs = uv.s;
+				float uvt = uv.t;
+
+				vec4 center = texture2D(uSampler, vec2(uvs, uvt));
+
+				vec4 masU = texture2D(uSampler, vec2(uvs+epsilon, uvt));  
+				vec4 masV = texture2D(uSampler, vec2(uvs, uvt+epsilon));  
+
+				vec4 menosU = texture2D(uSampler, vec2(uvs-epsilon, uvt));  
+				vec4 menosV = texture2D(uSampler, vec2(uvs, uvt-epsilon));  
+
+
+				// elevamos la coordenada Y
+				position.y += center.x*amplitud;
+
+				altura = position.y;
+
+				vec4 worldPos = modelMatrix*vec4(position, 1.0);                        
+
+				gl_Position = projMatrix*viewMatrix*worldPos;
+
+				vPosWorld=worldPos.xyz;
+				
+				
+				float angU=atan((masU.x-center.x)*amplitud,epsilon);
+				float angV=atan((masV.x-center.x)*amplitud,epsilon);
+
+				// tangentes en U y en V
+				vec3 gradU1=vec3(cos(angU),sin(angU),0.0);
+				vec3 gradV1=vec3(0.0      ,sin(angV),cos(angV));
+				
+				angU=atan((center.x-menosU.x)*amplitud,epsilon);
+				angV=atan((center.x-menosV.x)*amplitud,epsilon);
+
+				// segundo conjunto de tangentes en U y en V
+				vec3 gradU2=vec3(cos(angU),sin(angU),0.0);
+				vec3 gradV2=vec3(0.0      ,sin(angV),cos(angV));
+
+				// calculo el producto vectorial
+				vec3 tan1 = (gradV1+gradV2)/2.0;
+				vec3 tan2 = (gradU1+gradU2)/2.0;
+				vNormal = cross(tan1,tan2);
+				vUv=uv;	
+			}
+		</script>
+		
+		<script id="shader-fs-HM" type="x-shader/x-fragment">
+			precision mediump float;
+			varying highp vec2 vUv;
+			
+			varying float altura;
+			varying vec3 vNormal;
+			varying vec3 vPosWorld;
+
+			uniform float scale1;
+
+			
+			uniform sampler2D uSampler0;
+			uniform sampler2D uSampler1;
+			uniform sampler2D uSampler2;
+
+			vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+
+			float snoise(vec2 v){
+				const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+				vec2 i  = floor(v + dot(v, C.yy) );
+				vec2 x0 = v -   i + dot(i, C.xx);
+				vec2 i1;
+				i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+				vec4 x12 = x0.xyxy + C.xxzz;
+				x12.xy -= i1;
+				i = mod(i, 289.0);
+				vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+				+ i.x + vec3(0.0, i1.x, 1.0 ));
+				vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+				dot(x12.zw,x12.zw)), 0.0);
+				m = m*m ;
+				m = m*m ;
+				vec3 x = 2.0 * fract(p * C.www) - 1.0;
+				vec3 h = abs(x) - 0.5;
+				vec3 ox = floor(x + 0.5);
+				vec3 a0 = x - ox;
+				m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+				vec3 g;
+				g.x  = a0.x  * x0.x  + h.x  * x0.y;
+				g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+				return 130.0 * dot(m, g);
+			}
+			
+			
+			// ***************************************************************************
+			
+			
+			
+			void main(void) {
+
+				float low;
+				float high;
+
+				//=================================================
+				//Con esta forma no quedan lineas en la textura pero no me gusta
+
+				//low = (altura / 2.0) - 1.0 + 0.15;
+				//high = (altura / 2.0) - 1.0 - 0.15;
+
+				//=================================================
+				//Con esta forma hay lineas de separacion de alturas pero queda bien
+
+				if (altura <= 1.3){
+					low = -1.0;
+					high = -0.6;
+				}
+				if (altura > 1.3 && altura <= 2.6){
+					low = 0.0;
+					high = 0.5;
+				}
+				if (altura > 2.6){
+					low = 1.0;
+					high = 0.6;
+				}
+
+				//=================================================
+
+				// uSampler0: tierra
+				// uSampler1: roca
+				// uSampler2: pasto
+			
+				//vec4 textureColor = texture2D(uSampler2,vUv*3.0);
+				//vec4 textureColor = texture2D(uSampler2,vUv*3.0);
+
+				// sampleo el pasto a diferentes escalas
+
+				vec3 pasto1=texture2D(uSampler2,vUv*4.0*scale1).xyz;
+				vec3 pasto2=texture2D(uSampler2,vUv*3.77*scale1).xyz;
+				vec3 pasto3=texture2D(uSampler2,vUv*2.11*scale1).xyz;
+
+				// sampleo la tierra a diferentes escalas
+
+				vec3 tierra1=texture2D(uSampler0,vUv*4.0*scale1).xyz;
+				vec3 tierra2=texture2D(uSampler0,vUv*2.77*scale1).xyz;
+
+				// sampleo la roca
+				vec3 roca=texture2D(uSampler1,vUv*2.77*scale1).xyz;
+
+				// combino los 3 sampleos del pasto con la funcion de mezcla
+				vec3 color1=mix(mix(pasto1,pasto2,0.5),pasto3,0.3);
+
+				// genero una mascara 1 a partir de ruido perlin
+				float noise1=snoise(vUv.xy*8.23*scale1+23.11);
+				float noise2=snoise(vUv.xy*11.77*scale1+9.45);
+				float noise3=snoise(vUv.xy*14.8*scale1+21.2);
+
+				float mask1=mix(mix(noise1,noise2,0.5),noise3,0.3);
+				mask1=smoothstep(-0.1,0.2,mask1);
+
+				// combino tierra y roca usando la mascara 1
+				vec3 color2=mix(mix(tierra1,tierra2,0.5),roca,mask1);
+
+				// genero la mascara 2 a partir del ruido perlin
+				float noise4=snoise(vUv.xy*8.23*scale1);
+				float noise5=snoise(vUv.xy*11.77*scale1);
+				float noise6=snoise(vUv.xy*14.8*scale1);
+
+				float mask2=mix(mix(noise4,noise5,0.5),noise6,0.3);
+				mask2=smoothstep(low,high,mask2);
+
+				// combino color1 (tierra y rocas) con color2 a partir de la mascara2
+				vec3 color=mix(color1,color2,mask2);
+
+				//gl_FragColor = vec4(color,1.0);
+
+				vec3 lightVec = normalize(vec3(1.0, 3.0, 0.0) - vPosWorld);
+				vec3 colorLight = vec3(0.7, 0.7, 0.7) * max(0.0, dot(vNormal,lightVec)*1.1);
+
+
+				gl_FragColor = vec4(color + colorLight,1.0);
+
+				//gl_FragColor = vec4(mask1,mask1,mask1,1.0);
+			}
+        </script>
+
+		<script id="shader-vs-A" type="x-shader/x-vertex">
+
+			precision highp float;
+
+			attribute vec3 aVertexPosition;
+			attribute vec3 aVertexNormal;
+			attribute vec2 aUv;
+
+			uniform mat4 modelMatrix;
+			uniform mat4 viewMatrix;
+			uniform mat4 projMatrix;
+			uniform mat3 normalMatrix;
+
+			uniform float time;
+			const float PI = 3.141529;
+
+			varying vec3 vNormal;
+			varying vec3 vPosWorld;
+			varying vec2 vN;
+			varying vec2 uv;
+
+			vec3 altura(float x, float y, float z){
+
+				float aux = y;
+				aux += (1.0 + 0.2 * sin(x * 3.0 * PI + time * 7.0)) * 0.03;
+				aux += (1.0 + 0.2 * sin(z * 3.0 * PI + time * 7.0)) * 0.03;
+
+				return vec3(x, aux, z);
+			}
+
+			void main(void) {
+
+				vec4 worldPos = modelMatrix * vec4(aVertexPosition, 1.0);
+
+				vec3 center = altura(worldPos.x, worldPos.y, worldPos.z);
+
+				vec3 masU = altura(worldPos.x + 0.01, worldPos.y, worldPos.z);  
+				vec3 masV = altura(worldPos.x, worldPos.y, worldPos.z + 0.01); 
+
+				vec3 menosU = altura(worldPos.x - 0.01, worldPos.y, worldPos.z); 
+				vec3 menosV = altura(worldPos.x, worldPos.y, worldPos.z - 0.01); 
+
+
+				// elevamos la coordenada Y
+				worldPos.y = center.y;                      
+
+				gl_Position = projMatrix * viewMatrix * worldPos;
+
+				vPosWorld = worldPos.xyz;
+				
+				
+				float angU = atan((masU.x - center.y), 0.01);
+				float angV = atan((masV.x - center.y), 0.01);
+
+				// tangentes en U y en V
+				vec3 gradU1 = vec3(cos(angU), sin(angU), 0.0);
+				vec3 gradV1 = vec3(0.0, sin(angV), cos(angV));
+				
+				angU = atan((center.y - menosU.y), 0.01);
+				angV = atan((center.y - menosV.y), 0.01);
+
+				// segundo conjunto de tangentes en U y en V
+				vec3 gradU2 = vec3(cos(angU), sin(angU), 0.0);
+				vec3 gradV2 = vec3(0.0, sin(angV), cos(angV));
+
+				// calculo el producto vectorial
+				vec3 tan1 = (gradV1 + gradV2) / 2.0;
+				vec3 tan2 = (gradU1 + gradU2) / 2.0;
+				vNormal = cross(tan1,tan2);
+
+				
+				vec3 e = normalize(vec3(viewMatrix * worldPos));
+
+				vec3 r = reflect(e, vNormal);
+				float m = 2.0 * sqrt(pow(r.x, 2.0) + 
+							   pow(r.y, 2.0) +
+							   pow(r.z, 2.0));
+				vN = r.xy / m + 0.5;
+
+				uv = aUv;
+			}
+		</script>
+
+		<script id="shader-fs-A" type="x-shader/x-fragment">
+			precision highp float;
+
+			varying vec3 vPosWorld;
+			varying vec3 vNormal;
+			varying vec2 vN;
+			varying vec2 uv;
+
+			uniform sampler2D samplerRef;
+
+			uniform float a;
+			uniform float b;
+
+			uniform sampler2D sampler;
+
+			void main(void) {
+
+				vec4 textureColor = texture2D(sampler, vec2(uv.x + a, uv.y + b));
+				vec4 reflectionColor = texture2D(samplerRef, vec2(vN.x, vN.y));
+
+				vec3 lightVec = normalize(vec3(1.0, 3.0, 0.0));
+				float factorDifuso = max(0.4, dot(vNormal, lightVec) * 1.1);
+
+				vec3 color = factorDifuso * (textureColor.xyz * reflectionColor.xyz);
+
+				gl_FragColor = vec4(color,1.0);
+
+			}
+		</script>
+		<script>
+
+			var controles = "ArrowUp: Ir hacia adelante\nArrowDown: Ir hacia atras\n";
+			controles += "ArrowLeft: Ir a la izquierda\nArrowRight: Ir a la derecha\n";
+			controles += "A: Subir\nZ: Bajar\nH: Apagar motores\nM: Mostrar mallas\n";
+			controles += "1: Camara trasera\n2: Camara lateral\n3: Camara aerea\n";
+			controles += "4: Camara orbital\n5: Camara orbital desde el origen\n";
+			controles += "+/-: Zoom en camara orbital";
+
+			var gl = null,
+			canvas = null,
+			glProgram = null,
+			glProgramHM = null,
+			fragmentShader = null,
+			vertexShader = null,
+			fragmentShaderHM = null,
+			vertexShaderHM = null;
+
+			var modelMatrix = mat4.create();
+			var viewMatrix = mat4.create();
+			var projMatrix = mat4.create();
+			var normalMatrix = mat4.create();
+
+			var mostrarMalla = false;
+
+			$("body").keydown(function(e){
+				switch(e.key){
+					case "m":
+						mostrarMalla = !mostrarMalla;
+						break;
+					case "c":
+						alert(controles);
+						break;                
+				}
+			});
+
+			var time = 0;
+
+			var camara = new Camara();
+			var helicoptero = null;
+			var terreno = null;
+			var mascara = null;
+			var agua = null;
+			var cielo = null;
+			var totalTexturas = 3;
+			var objetos = [];
+		 
+			function initWebGL(){
+
+				canvas = document.getElementById("my-canvas");  
+				try{
+					gl = canvas.getContext("webgl");      
+					gl.canvas.width = window.innerWidth;
+					gl.canvas.height = window.innerHeight;
+
+					window.addEventListener('resize', onResize);
+
+				}catch(e){
+					alert(  "Error: Your browser does not appear to support WebGL.");
+				}
+
+				if(gl) {
+
+					gl.enable(gl.DEPTH_TEST);
+
+					mascara = new MascaraHM()
+					mascara.initTexture("img/grava.jpg")
+					mascara.initTexture("img/roca.jpg")
+					mascara.initTexture("img/pasto.jpg")
+
+
+				}else{    
+					alert(  "Error: Your browser does not appear to support WebGL.");
+				}
+
+			}
+
+			function fase(){
+
+					setupWebGL();
+					initShaders();
+
+					helicoptero = new Helicoptero();
+					helicoptero.setEscala(0.3, 0.3, 0.3);
+					objetos.push(helicoptero);
+
+					var helipuerto = new Helipuerto(0.3, 0.5, 0.3);
+					helipuerto.setPosicion(0, 2 - 0.029, 0);
+					objetos.push(helipuerto);
+
+					terreno = new HeightMap(15, 15, 128, 128);
+					terreno.initTexture("img/heightmap.png");
+
+					terreno.setMascara(mascara);
+
+					agua = new Agua(15, 15, 128, 128);
+					agua.initTexture("img/agua.jpg");
+					agua.initRefTexture("img/cielo1.jpg");
+
+					cielo = new Objeto3D(new Esfera(15), 40, 40);
+					cielo.setRotacion(PI, 0, 0);
+					cielo.setPosicion(0, -2, 0);
+					cielo.initTexture("img/cielo1.jpg");
+					objetos.push(cielo);
+
+					tick();
+			}
+
+			function onResize(){
+				gl.canvas.width = window.innerWidth;
+				gl.canvas.height = window.innerHeight;
+			}
+
+			function setupWebGL(){
+				//gl.enable(gl.DEPTH_TEST);
+				//set the clear color
+				gl.clearColor(...colorCielo, 1.0);     
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	
+				gl.viewport(0, 0, canvas.width, canvas.height);
+
+				// Matrix de Proyeccion Perspectiva
+
+				mat4.perspective(projMatrix, 45, canvas.width / canvas.height, 0.1, 100.0);
+
+				mat4.identity(viewMatrix);
+				mat4.translate(viewMatrix,viewMatrix, [0.0, 0.0, -5.0]);
+			}
+
+			function initShaders() {
+				//get shader source
+				var fs_source = document.getElementById('shader-fs').innerHTML,
+					vs_source = document.getElementById('shader-vs').innerHTML,
+					fs_hm_source = document.getElementById('shader-fs-HM').innerHTML,
+					vs_hm_source = document.getElementById('shader-vs-HM').innerHTML;
+					fs_a_source = document.getElementById("shader-fs-A").innerHTML;
+					vs_a_source = document.getElementById("shader-vs-A").innerHTML;
+
+				//compile shaders    
+				vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
+				fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+				vertexShaderHM = makeShader(vs_hm_source, gl.VERTEX_SHADER);
+				fragmentShaderHM = makeShader(fs_hm_source, gl.FRAGMENT_SHADER);
+				vertexShaderA = makeShader(vs_a_source, gl.VERTEX_SHADER);
+				fragmentShaderA = makeShader(fs_a_source, gl.FRAGMENT_SHADER);
+				
+				//create program
+				glProgram = gl.createProgram();
+
+				
+				//attach and link shaders to the program
+				gl.attachShader(glProgram, vertexShader);
+				gl.attachShader(glProgram, fragmentShader);
+				gl.linkProgram(glProgram);
+
+				if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+					alert("Unable to initialize the shader program.");
+				}
+
+
+				glProgram.modelMatrixUniform = gl.getUniformLocation(glProgram, "modelMatrix");
+				glProgram.normalMatrixUniform  = gl.getUniformLocation(glProgram, "normalMatrix");
+				glProgram.vertexPositionAttribute = gl.getAttribLocation(glProgram, "aVertexPosition");
+				glProgram.vertexNormalAttribute = gl.getAttribLocation(glProgram, "aVertexNormal");
+				glProgram.vertexUvAttribute = gl.getAttribLocation(glProgram, "aUv");
+				glProgram.lighting = gl.getUniformLocation(glProgram, "uUseLighting");
+				glProgram.viewMatrixUniform  = gl.getUniformLocation(glProgram, "viewMatrix");
+				glProgram.projMatrixUniform  = gl.getUniformLocation(glProgram, "projMatrix");
+				glProgram.rgb = gl.getUniformLocation(glProgram, "RGB");
+				glProgram.ambientLighting = gl.getUniformLocation(glProgram, "ambientLighting");
+				glProgram.lightVec = gl.getUniformLocation(glProgram, "lightVec");
+				glProgram.lightColor = gl.getUniformLocation(glProgram, "lightColor");
+				glProgram.sampler = gl.getUniformLocation(glProgram, "sampler");
+				glProgram.useTexture = gl.getUniformLocation(glProgram, "uUseTexture");
+
+
+				glProgramHM = gl.createProgram();
+
+				gl.attachShader(glProgramHM, vertexShaderHM);
+				gl.attachShader(glProgramHM, fragmentShaderHM);
+				gl.linkProgram(glProgramHM);
+
+				
+				if (!gl.getProgramParameter(glProgramHM, gl.LINK_STATUS)) {
+					alert("Unable to initialize the shader program1.");
+				}
+
+				glProgramHM.viewMatrixUniform  = gl.getUniformLocation(glProgramHM, "viewMatrix");
+				glProgramHM.projMatrixUniform  = gl.getUniformLocation(glProgramHM, "projMatrix");
+				glProgramHM.vertexPositionAttribute = gl.getAttribLocation(glProgramHM, "aVertexPosition");
+				glProgramHM.vertexUvAttribute = gl.getAttribLocation(glProgramHM, "aUv");
+				glProgramHM.vertexNormalAttribute = gl.getAttribLocation(glProgramHM, "aVertexNormal");
+				glProgramHM.sampler = gl.getUniformLocation(glProgramHM, "uSampler");
+				glProgramHM.a = gl.getUniformLocation(glProgramHM, "a");
+				glProgramHM.b = gl.getUniformLocation(glProgramHM, "b");
+				glProgramHM.modelMatrixUniform = gl.getUniformLocation(glProgramHM, "modelMatrix");
+				glProgramHM.normalMatrixUniform  = gl.getUniformLocation(glProgramHM, "normalMatrix");
+
+
+				glProgramHM.samplerUniform0 = gl.getUniformLocation(glProgramHM, "uSampler0");
+				glProgramHM.samplerUniform1 = gl.getUniformLocation(glProgramHM, "uSampler1");
+				glProgramHM.samplerUniform2 = gl.getUniformLocation(glProgramHM, "uSampler2");
+
+
+				glProgramA = gl.createProgram();
+
+				gl.attachShader(glProgramA, vertexShaderA);
+				gl.attachShader(glProgramA, fragmentShaderA);
+				gl.linkProgram(glProgramA);
+
+				if (!gl.getProgramParameter(glProgramA, gl.LINK_STATUS)) {
+					alert("Unable to initialize the shader program1.");
+				}
+
+				glProgramA.modelMatrixUniform = gl.getUniformLocation(glProgramA, "modelMatrix");
+				glProgramA.normalMatrixUniform = gl.getUniformLocation(glProgramA, "normalMatrix");
+				glProgramA.vertexPositionAttribute = gl.getAttribLocation(glProgramA, "aVertexPosition");
+				glProgramA.vertexNormalAttribute = gl.getAttribLocation(glProgramA, "aVertexNormal");
+				glProgramA.vertexUvAttribute = gl.getAttribLocation(glProgramA, "aUv");
+				glProgramA.viewMatrixUniform = gl.getUniformLocation(glProgramA, "viewMatrix");
+				glProgramA.projMatrixUniform = gl.getUniformLocation(glProgramA, "projMatrix");
+				glProgramA.sampler = gl.getUniformLocation(glProgramA, "sampler");
+				glProgramA.a = gl.getUniformLocation(glProgramA, "a");
+				glProgramA.b = gl.getUniformLocation(glProgramA, "b");
+				glProgramA.samplerRef = gl.getUniformLocation(glProgramA, "samplerRef");
+				glProgramA.time = gl.getUniformLocation(glProgramA, "time");
+
+			}
+
+			function makeShader(src, type){
+				//compile the vertex shader
+				var shader = gl.createShader(type);
+				gl.shaderSource(shader, src);
+				gl.compileShader(shader);
+
+				if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+					console.log("Error compiling shader: " + gl.getShaderInfoLog(shader));
+				}
+				return shader;
+			}
+
+			function setupVertexShaderMatrix(program){
+				gl.uniformMatrix4fv(program.viewMatrixUniform, false, viewMatrix);
+				gl.uniformMatrix4fv(program.projMatrixUniform, false, projMatrix);
+			}
+			
+			function drawScene(){
+
+				setupWebGL();
+
+				camara.actualizarVista(helicoptero, viewMatrix);
+				var pos = helicoptero.getPosition();
+
+				gl.useProgram(glProgramA);
+				setupVertexShaderMatrix(glProgramA);
+				gl.uniform1f(glProgramA.time, time);
+				agua.dibujar(pos.x, pos.z);
+
+				gl.useProgram(glProgramHM);
+				setupVertexShaderMatrix(glProgramHM);
+				terreno.dibujar(pos.x, pos.z);
+
+				gl.useProgram(glProgram);
+				setupVertexShaderMatrix(glProgram);
+				var origen = mat4.create();
+				for (var i = 0; i < objetos.length; i++){
+					objetos[i].dibujar(origen);
+				}
+			}
+
+
+			function animate(){
+				time += 1/60;
+				helicoptero.actualizar();
+
+			}
+			
+			function tick(){
+
+				requestAnimationFrame(tick);
+				drawScene();
+				animate();
+			}
+
+			window.onload = initWebGL;
+
+		</script>
+
+
+	</body>
+</html>
