@@ -8,10 +8,14 @@ var magia = 0.552284749831;
 
 //Funcion de escalado que hace que una sup de barrido tenga tapas
 var escaladoTapas = function(v){
-	if (v == 0 || v == 1){
-		return [0, 0, 0];
+	var aux = 1;
+	if (v < 0.25){
+		aux = 2 * sqrt(v);
 	}
-	return [1, 1, 1];
+	if (v > 0.75){
+		aux = 2 * sqrt(-v + 1);
+	}
+	return [aux, aux, aux];
 };
 
 var cos = Math.cos;

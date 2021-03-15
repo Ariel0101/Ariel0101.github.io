@@ -62,7 +62,6 @@ function SuperficieBarrido(forma, recorrido, escalar = null, rotar = null) {
 
 		var normales = [];
 
-
 		for (var i = 0; i < vectores.length - 1; i++){
 			var aux = vec3.create();
 			vec3.cross(aux, vectores[i], vectores[i + 1]);

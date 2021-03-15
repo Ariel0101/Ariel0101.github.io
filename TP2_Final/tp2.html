@@ -54,6 +54,8 @@
 			uniform mat4 projMatrix;
 			uniform mat3 normalMatrix;
 
+			uniform bool uCabina;
+
 			varying vec3 vNormal;    
 			varying vec3 vPosWorld;
 			varying vec2 uv;
@@ -66,7 +68,12 @@
 
 				vPosWorld = worldPos.xyz;
 				vNormal = normalize(normalMatrix * aVertexNormal);
-				uv = aUv;
+				if (uCabina){
+					uv.x = aVertexPosition.x * -3.5 + 0.5;
+					uv.y = aVertexPosition.y * 3.5 + 0.5;
+				} else {
+					uv = aUv;
+				}
 				
 			}
 		</script>
@@ -91,22 +98,42 @@
 
 			void main(void) {
 
-				vec3 direction = normalize(lightVec - vPosWorld);
-				float diffColor = max(dot(vNormal, direction), 0.0);
-				vec3 color = lightColor * diffColor + ambientLighting;
+				vec3 direction = normalize(lightVec);
 
-				color.x *= RGB.x;
-				color.y *= RGB.y;
-				color.z *= RGB.z;
+				float lambertian = max(dot(vNormal, direction), 0.0);
 
+				float specular = 0.0;
+
+				if(lambertian > 0.0) {
+					vec3 R = reflect(-direction, vNormal);
+					vec3 V = normalize(-vPosWorld); // Vector to viewer
+
+					// Compute the specular term
+					float specAngle = max(dot(R, V), 0.0);
+					specular = pow(specAngle, 4.0);
+				}
+
+				const float Ka = 1.0;
+				const float Kd = 1.0;
+				const float Ks = 1.0;
+
+				vec3 color = Ka * vec3(0.6, 0.6, 0.6) + Ks * specular * vec3(1.0, 1.0, 1.0);
 
 				if (uUseTexture){
 					vec4 textureColor = texture2D(sampler, uv);
-					color = textureColor.xyz;
+					//color += Kd * lambertian * vNormal;
+					//color *= vNormal;
+					color += Kd * lambertian * textureColor.xyz;
+					color *= textureColor.xyz;
+				} else {
+					//color += Kd * lambertian * vNormal;
+					//color *= vNormal;
+					color += Kd * lambertian * RGB;
+					color *= RGB;
 				}
 
 				if (uUseLighting)
-					gl_FragColor = vec4(color,1.0);
+					gl_FragColor = vec4(color, 1.0);
 				else
 					gl_FragColor = vec4(0.7,0.7,0.7,1.0);
 			}
@@ -115,7 +142,6 @@
 		<script id="shader-vs-HM" type="x-shader/x-vertex">
 
 			attribute vec3 aVertexPosition;   //posicion (x,y,z)
-			attribute vec3 aVertexNormal;     //vector normal (x,y,z)
 			attribute vec2 aUv;         //coordenadas de texture (x,y)  x e y (en este caso) van de 0 a 1
 
 			uniform mat4 modelMatrix;     // matriz de modelado
@@ -138,59 +164,72 @@
 			
 			
 			const float PI = 3.141592653;
-			const float epsilon = 0.01;
+
+			const float epsilon = 5.0 / 1024.0;
 
 			const float amplitud = 4.0;
+
+			const int samplingRange = 1;
+
+			float multisample(sampler2D texture, vec2 coord){
+
+				float sum = 0.0;
+				float totalWeight;
+				float pixelDistance = epsilon;
+
+				for (int i = -samplingRange; i <= samplingRange; i++){
+					for (int j = -samplingRange; j<= samplingRange; j++){
+
+						float weight = 1.0 / (1.0 + sqrt(pow(float(j),2.0) + pow(float(i), 2.0)));
+						totalWeight += weight;
+
+						vec2 uv = coord + vec2(float(i),float(j)) * pixelDistance * 2.0;
+						sum += weight * texture2D(texture, vec2(uv.s, uv.t)).x;
+					}
+				}
+
+				return sum / totalWeight;
+			}
 
 			void main(void) {
 						
 				vec3 position = aVertexPosition;
-				vec3 normal = aVertexNormal;
 				vec2 uv = vec2(aUv.s + a, aUv.t + b);
 
 				float uvs = uv.s;
 				float uvt = uv.t;
 
-				vec4 center = texture2D(uSampler, vec2(uvs, uvt));
+				float center = multisample(uSampler, vec2(uvs, uvt));
 
-				vec4 masU = texture2D(uSampler, vec2(uvs+epsilon, uvt));  
-				vec4 masV = texture2D(uSampler, vec2(uvs, uvt+epsilon));  
-
-				vec4 menosU = texture2D(uSampler, vec2(uvs-epsilon, uvt));  
-				vec4 menosV = texture2D(uSampler, vec2(uvs, uvt-epsilon));  
+				float centerMasX = multisample(uSampler, vec2(uvs + epsilon, uvt));  
+            	float centerMasZ = multisample(uSampler, vec2(uvs, uvt + epsilon));
 
 
 				// elevamos la coordenada Y
-				position.y += center.x*amplitud;
+				position.y += center * amplitud;
 
 				altura = position.y;
 
-				vec4 worldPos = modelMatrix*vec4(position, 1.0);                        
+				vec4 worldPos = modelMatrix * vec4(position, 1.0);                        
 
-				gl_Position = projMatrix*viewMatrix*worldPos;
+				gl_Position = projMatrix * viewMatrix * worldPos;
 
-				vPosWorld=worldPos.xyz;
-				
-				
-				float angU=atan((masU.x-center.x)*amplitud,epsilon);
-				float angV=atan((masV.x-center.x)*amplitud,epsilon);
+				vPosWorld = worldPos.xyz;
 
-				// tangentes en U y en V
-				vec3 gradU1=vec3(cos(angU),sin(angU),0.0);
-				vec3 gradV1=vec3(0.0      ,sin(angV),cos(angV));
-				
-				angU=atan((center.x-menosU.x)*amplitud,epsilon);
-				angV=atan((center.x-menosV.x)*amplitud,epsilon);
+	            float deltaElevationX = (centerMasX - center) * amplitud;
+	            float deltaElevationZ = (centerMasZ - center) * amplitud;
+	  
 
-				// segundo conjunto de tangentes en U y en V
-				vec3 gradU2=vec3(cos(angU),sin(angU),0.0);
-				vec3 gradV2=vec3(0.0      ,sin(angV),cos(angV));
+	            // angulo del vector tangente en el plano XY, ZY respectivamente            
+	            float angEnX = atan(deltaElevationX, epsilon);
+	            float angEnZ = atan(deltaElevationZ, epsilon);
 
-				// calculo el producto vectorial
-				vec3 tan1 = (gradV1+gradV2)/2.0;
-				vec3 tan2 = (gradU1+gradU2)/2.0;
-				vNormal = cross(tan1,tan2);
-				vUv=uv;	
+	            // vectores tangentes
+	            vec3 tangenteX = vec3(cos(angEnX), sin(angEnX), 0.0);
+	            vec3 tangenteZ = vec3(0.0, sin(angEnZ), cos(angEnZ));
+
+				vNormal = cross(tangenteZ, tangenteX);
+				vUv = uv;	
 			}
 		</script>
 		
@@ -315,19 +354,34 @@
 				mask2=smoothstep(low,high,mask2);
 
 				// combino color1 (tierra y rocas) con color2 a partir de la mascara2
-				vec3 color=mix(color1,color2,mask2);
+				vec3 colorRGB = mix(color1, color2, mask2);
+				//vec3 colorRGB = vNormal;
 
-				//gl_FragColor = vec4(color,1.0);
+				//====================================================================
 
-				vec3 lightVec = normalize(vec3(1.0, 3.0, 0.0) - vPosWorld);
-				vec3 colorLight = vec3(0.7, 0.7, 0.7) * max(0.0, dot(vNormal,lightVec)*1.1);
+				vec3 direction = normalize(vec3(-1.0, 0.6, 0.0));
 
+				float lambertian = max(dot(vNormal, direction), 0.0);
 
-				gl_FragColor = vec4(color + colorLight,1.0);
+				float specular = 0.0;
 
-				//gl_FragColor = vec4(mask1,mask1,mask1,1.0);
+				if(lambertian > 0.0) {
+					vec3 R = reflect(-direction, vNormal);
+					vec3 V = normalize(-vPosWorld); // Vector to viewer
+
+					// Compute the specular term
+					float specAngle = max(dot(R, V), 0.0);
+					specular = pow(specAngle, 2.0);
+				}
+
+				const float Ka = 1.0;
+				const float Kd = 1.0;
+
+				vec3 color = Ka * vec3(0.6, 0.6, 0.6) + Kd * lambertian * colorRGB;
+
+				gl_FragColor = vec4(color * colorRGB, 1.0);
 			}
-        </script>
+		</script>
 
 		<script id="shader-vs-A" type="x-shader/x-vertex">
 
@@ -347,7 +401,6 @@
 
 			varying vec3 vNormal;
 			varying vec3 vPosWorld;
-			varying vec2 vN;
 			varying vec2 uv;
 
 			vec3 altura(float x, float y, float z){
@@ -365,48 +418,14 @@
 
 				vec3 center = altura(worldPos.x, worldPos.y, worldPos.z);
 
-				vec3 masU = altura(worldPos.x + 0.01, worldPos.y, worldPos.z);  
-				vec3 masV = altura(worldPos.x, worldPos.y, worldPos.z + 0.01); 
-
-				vec3 menosU = altura(worldPos.x - 0.01, worldPos.y, worldPos.z); 
-				vec3 menosV = altura(worldPos.x, worldPos.y, worldPos.z - 0.01); 
-
-
 				// elevamos la coordenada Y
-				worldPos.y = center.y;                      
+				worldPos.y = center.y;
 
 				gl_Position = projMatrix * viewMatrix * worldPos;
 
 				vPosWorld = worldPos.xyz;
-				
-				
-				float angU = atan((masU.x - center.y), 0.01);
-				float angV = atan((masV.x - center.y), 0.01);
 
-				// tangentes en U y en V
-				vec3 gradU1 = vec3(cos(angU), sin(angU), 0.0);
-				vec3 gradV1 = vec3(0.0, sin(angV), cos(angV));
-				
-				angU = atan((center.y - menosU.y), 0.01);
-				angV = atan((center.y - menosV.y), 0.01);
-
-				// segundo conjunto de tangentes en U y en V
-				vec3 gradU2 = vec3(cos(angU), sin(angU), 0.0);
-				vec3 gradV2 = vec3(0.0, sin(angV), cos(angV));
-
-				// calculo el producto vectorial
-				vec3 tan1 = (gradV1 + gradV2) / 2.0;
-				vec3 tan2 = (gradU1 + gradU2) / 2.0;
-				vNormal = cross(tan1,tan2);
-
-				
-				vec3 e = normalize(vec3(viewMatrix * worldPos));
-
-				vec3 r = reflect(e, vNormal);
-				float m = 2.0 * sqrt(pow(r.x, 2.0) + 
-							   pow(r.y, 2.0) +
-							   pow(r.z, 2.0));
-				vN = r.xy / m + 0.5;
+				vNormal = vec3(0.0006 * cos(3.0*PI*center.x + 7.0*PI) * 3.0*PI, 1, 0.0006 * cos(3.0*PI*center.z + 7.0*PI) * 3.0*PI);
 
 				uv = aUv;
 			}
@@ -417,10 +436,12 @@
 
 			varying vec3 vPosWorld;
 			varying vec3 vNormal;
-			varying vec2 vN;
 			varying vec2 uv;
 
-			uniform sampler2D samplerRef;
+			uniform samplerCube samplerRef;
+			uniform vec3 uCameraPosition;
+
+			const float PI = 3.141529;
 
 			uniform float a;
 			uniform float b;
@@ -429,15 +450,37 @@
 
 			void main(void) {
 
+				vec3 incident = normalize(vPosWorld - uCameraPosition);
+				vec3 r = reflect(incident, vNormal);
+
 				vec4 textureColor = texture2D(sampler, vec2(uv.x + a, uv.y + b));
-				vec4 reflectionColor = texture2D(samplerRef, vec2(vN.x, vN.y));
+				vec4 reflectionColor = textureCube(samplerRef, r);
 
-				vec3 lightVec = normalize(vec3(1.0, 3.0, 0.0));
-				float factorDifuso = max(0.4, dot(vNormal, lightVec) * 1.1);
+				//=================================================================
 
-				vec3 color = factorDifuso * (textureColor.xyz * reflectionColor.xyz);
+				vec3 direction = normalize(vec3(-1.0, 0.6, 0.0));
 
-				gl_FragColor = vec4(color,1.0);
+				float lambertian = max(dot(vNormal, direction), 0.0);
+
+				float specular = 0.0;
+
+				if(lambertian > 0.0) {
+					vec3 R = reflect(-direction, vNormal);
+					vec3 V = normalize(-vPosWorld); // Vector to viewer
+
+					// Compute the specular term
+					float specAngle = max(dot(R, V), 0.0);
+					specular = pow(specAngle, 10.0);
+				}
+
+				const float Ka = 1.0;
+				const float Kd = 1.0;
+				const float Ks = 10.0;
+
+				vec3 color = Ka * vec3(0.6, 0.6, 0.6) + Kd * lambertian * textureColor.xyz + Ks * specular * vec3(1.0, 1.0, 1.0);
+
+
+				gl_FragColor = vec4(color * textureColor.xyz * reflectionColor.xyz, 1.0);
 
 			}
 		</script>
@@ -487,6 +530,8 @@
 			var cielo = null;
 			var totalTexturas = 3;
 			var objetos = [];
+
+			var prueba = null;
 		 
 			function initWebGL(){
 
@@ -531,14 +576,23 @@
 					helipuerto.setPosicion(0, 2 - 0.029, 0);
 					objetos.push(helipuerto);
 
-					terreno = new HeightMap(15, 15, 128, 128);
-					terreno.initTexture("img/heightmap.png");
+					terreno = new HeightMap(15, 15, 6, 6);
+					terreno.initTexture("img/heightmapblur.png");
 
 					terreno.setMascara(mascara);
 
 					agua = new Agua(15, 15, 128, 128);
 					agua.initTexture("img/agua.jpg");
-					agua.initRefTexture("img/cielo1.jpg");
+					//agua.initRefTexture("img/cielo1.jpg");
+					var mapa_cielo = {
+						x_pos : "img/X_pos.png",
+						x_neg : "img/X_neg.png",
+						y_pos : "img/Y_pos.png",
+						y_neg : "img/Y_neg.png",
+						z_pos : "img/Z_pos.png",
+						z_neg : "img/Z_neg.png"
+					}
+					agua.initRefTexture(mapa_cielo);
 
 					cielo = new Objeto3D(new Esfera(15), 40, 40);
 					cielo.setRotacion(PI, 0, 0);
@@ -567,7 +621,7 @@
 				mat4.perspective(projMatrix, 45, canvas.width / canvas.height, 0.1, 100.0);
 
 				mat4.identity(viewMatrix);
-				mat4.translate(viewMatrix,viewMatrix, [0.0, 0.0, -5.0]);
+				mat4.translate(viewMatrix, viewMatrix, [0.0, 0.0, -10.0]);
 			}
 
 			function initShaders() {
@@ -615,6 +669,7 @@
 				glProgram.lightColor = gl.getUniformLocation(glProgram, "lightColor");
 				glProgram.sampler = gl.getUniformLocation(glProgram, "sampler");
 				glProgram.useTexture = gl.getUniformLocation(glProgram, "uUseTexture");
+				glProgram.uCabina = gl.getUniformLocation(glProgram, "uCabina");
 
 
 				glProgramHM = gl.createProgram();
@@ -667,6 +722,7 @@
 				glProgramA.b = gl.getUniformLocation(glProgramA, "b");
 				glProgramA.samplerRef = gl.getUniformLocation(glProgramA, "samplerRef");
 				glProgramA.time = gl.getUniformLocation(glProgramA, "time");
+				glProgramA.uCameraPosition = gl.getUniformLocation(glProgramA, "uCameraPosition");
 
 			}
 
@@ -697,7 +753,7 @@
 				gl.useProgram(glProgramA);
 				setupVertexShaderMatrix(glProgramA);
 				gl.uniform1f(glProgramA.time, time);
-				agua.dibujar(pos.x, pos.z);
+				agua.dibujar(pos.x, pos.z, camara.getPosition());
 
 				gl.useProgram(glProgramHM);
 				setupVertexShaderMatrix(glProgramHM);

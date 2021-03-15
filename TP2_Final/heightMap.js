@@ -87,10 +87,6 @@ function setupBuffersHM(ladoParcela, cantParcelas, latitud, longitud){
 			var u = z / (ladoParcela*cantParcelas);
 			var v = 1 - (x / (ladoParcela*cantParcelas));
 
-			normal.push(0);
-			normal.push(1);
-			normal.push(0);
-
 			coords.push(u);
 			coords.push(v);
 			
@@ -105,10 +101,6 @@ function setupBuffersHM(ladoParcela, cantParcelas, latitud, longitud){
 	var positionBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos), gl.STATIC_DRAW);  
-
-	var normalBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normal), gl.STATIC_DRAW);
 
 	var coordsBuffer = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, coordsBuffer);
@@ -140,7 +132,6 @@ function setupBuffersHM(ladoParcela, cantParcelas, latitud, longitud){
 
 	return {
 		positionBuffer,
-		normalBuffer,
 		coordsBuffer,
 		indexBuffer
 	}
@@ -175,10 +166,6 @@ function dibujarMallaHM(malla, textura){
 	gl.enableVertexAttribArray(glProgramHM.vertexUvAttribute);
 	gl.bindBuffer(gl.ARRAY_BUFFER, malla.coordsBuffer);
 	gl.vertexAttribPointer(glProgramHM.vertexUvAttribute, 2, gl.FLOAT, false, 0, 0);
-
-	gl.enableVertexAttribArray(glProgramHM.vertexNormalAttribute);
-	gl.bindBuffer(gl.ARRAY_BUFFER, malla.normalBuffer);
-	gl.vertexAttribPointer(glProgramHM.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
 
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, textura);

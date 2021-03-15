@@ -34,27 +34,20 @@ function Helicoptero(){
 
 	var recorridoZ = new BezierCubic(controlRecorridoZ);
 
-
 	var escaladoCuerpo = function(v){
-		if (v == 0){
-			return [0,0,0];
+		var aux = (sqrt((pow(0.5,2))-(pow(v-0.5,2))) + 0.5);
+		if (v < 0.204){
+			aux = 2 * sqrt(v);
 		}
-		if (v == 1){
-			return [0,0,0];
+		if (v > 0.796){
+			aux = 2 * sqrt(-v + 1);
 		}
-		if (v < 0.5){
-			var aux = (sqrt((pow(0.5,2))-(pow(v-0.5,2))) + 0.5);
-			return [aux, aux, aux];
-		}
-		if (v > 0.5){
-			var aux = (sqrt((pow(0.5,2))-(pow(v-0.5,2))) + 0.5);
-			return [aux, aux, aux];
-		}
-		return [1,1,1];
+		return [aux, aux, aux];
 	}
 	var supCuerpo = new SuperficieBarrido(formaCuerpo, recorridoZ, escaladoCuerpo);
 
-	this.cuerpo = new Objeto3D(supCuerpo, 50, 50, colorCuerpo);
+	this.cuerpo = new Objeto3D(supCuerpo, 100, 30, colorCuerpo, true);
+	this.cuerpo.initTexture("img/cabina.png");
 
 	var heliceDD = new HeliceDerecha();
 	heliceDD.setEscala(1.4, 1.4, 1.4);
@@ -186,25 +179,29 @@ class HeliceDerecha {
 		var m0 = 0.01*0.552284749831;
 		var controlFormaCirculo =
 		[
-			[vec3.fromValues(0.01, 0, 0),
-			 vec3.fromValues(0.01, m0, 0),
-			 vec3.fromValues(m0, 0.01, 0),
-			 vec3.fromValues(0, 0.01, 0)
+			[
+				vec3.fromValues(0.01, 0, 0),
+				vec3.fromValues(0.01, -m0, 0),
+				vec3.fromValues(m0, -0.01, 0),
+				vec3.fromValues(0, -0.01, 0)
 			],
-			[vec3.fromValues(0, 0.01, 0),
-			 vec3.fromValues(-m0, 0.01, 0),
-			 vec3.fromValues(-0.01, m0, 0),
-			 vec3.fromValues(-0.01, 0, 0)
+			[
+				vec3.fromValues(0, -0.01, 0),
+				vec3.fromValues(-m0, -0.01, 0),
+				vec3.fromValues(-0.01, -m0, 0),
+				vec3.fromValues(-0.01, 0, 0)
 			],
-			[vec3.fromValues(-0.01, 0, 0),
-			 vec3.fromValues(-0.01, -m0, 0),
-			 vec3.fromValues(-m0, -0.01, 0),
-			 vec3.fromValues(0, -0.01, 0)
+			[
+				vec3.fromValues(-0.01, 0, 0),
+				vec3.fromValues(-0.01, m0, 0),
+				vec3.fromValues(-m0, 0.01, 0),
+				vec3.fromValues(0, 0.01, 0)
 			],
-			[vec3.fromValues(0, -0.01, 0),
-			 vec3.fromValues(m0, -0.01, 0),
-			 vec3.fromValues(0.01, -m0, 0),
-			 vec3.fromValues(0.01, 0, 0)
+			[
+				vec3.fromValues(0, 0.01, 0),
+				vec3.fromValues(m0, 0.01, 0),
+				vec3.fromValues(0.01, m0, 0),
+				vec3.fromValues(0.01, 0, 0)
 			]
 
 		];
@@ -228,35 +225,41 @@ class HeliceDerecha {
 		var m2 = 0.01*magia;
 		var controlFormaElipse =
 		[
-			[vec3.fromValues(0.01, 0, 0),
-			 vec3.fromValues(0.01, m1/2, 0),
-			 vec3.fromValues(m2, 0.00666, 0),
-			 vec3.fromValues(0, 0.00666, 0)
+			[
+				vec3.fromValues(0.01, 0, 0),
+				vec3.fromValues(0.01, -m1/2, 0),
+				vec3.fromValues(m2, -0.006666, 0),
+				vec3.fromValues(0, -0.00666, 0)
 			],
-			[vec3.fromValues(0, 0.00666, 0),
-			 vec3.fromValues(-m2, 0.00666, 0),
-			 vec3.fromValues(-0.01, m1/2, 0),
-			 vec3.fromValues(-0.01, 0, 0)
+			[
+				vec3.fromValues(0, -0.00666, 0),
+				vec3.fromValues(-m2, -0.00666, 0),
+				vec3.fromValues(-0.01, -m1/2, 0),
+				vec3.fromValues(-0.01, 0, 0)
 			],
-			[vec3.fromValues(-0.01, 0, 0),
-			 vec3.fromValues(-0.01, -m1/2, 0),
-			 vec3.fromValues(-m2, -0.00666, 0),
-			 vec3.fromValues(0, -0.00666, 0)
+			[
+				vec3.fromValues(-0.01, 0, 0),
+				vec3.fromValues(-0.01, m1/2, 0),
+				vec3.fromValues(-m2, 0.00666, 0),
+				vec3.fromValues(0, 0.00666, 0)
 			],
-			[vec3.fromValues(0, -0.00666, 0),
-			 vec3.fromValues(m2, -0.006666, 0),
-			 vec3.fromValues(0.01, -m1/2, 0),
-			 vec3.fromValues(0.01, 0, 0)
+			[
+				vec3.fromValues(0, 0.00666, 0),
+				vec3.fromValues(m2, 0.00666, 0),
+				vec3.fromValues(0.01, m1/2, 0),
+				vec3.fromValues(0.01, 0, 0)
 			]
 		];
 
+
 		var formaElipse = new CurvaMultiple(controlFormaElipse, 4);
 
-		var controlRecorridoZ0 = [vec3.fromValues(0, 0, 0),
-								 vec3.fromValues(0, 0, 0.025),
-								 vec3.fromValues(0, 0, 0.05),
-								 vec3.fromValues(0, 0, 0.075)
-								]
+		var controlRecorridoZ0 = [
+									vec3.fromValues(0, 0, 0),
+									vec3.fromValues(0, 0, 0.025),
+									vec3.fromValues(0, 0, 0.05),
+									vec3.fromValues(0, 0, 0.075)
+								 ]
 
 		var recorridoZ0 = new BezierCubic(controlRecorridoZ0);
 
@@ -275,35 +278,41 @@ class HeliceDerecha {
 
 		var controlFormaO =
 		[
-			[vec3.fromValues(0.002, 0.002, 0),
-			 vec3.fromValues(0.002, m3 + 0.002, 0),
-			 vec3.fromValues(m3, 0.004, 0),
-			 vec3.fromValues(0, 0.004, 0)
+			[
+				vec3.fromValues(0.002, 0.002, 0),
+				vec3.fromValues(0.002, 0.000666, 0),
+				vec3.fromValues(0.002, -0.000666, 0),
+				vec3.fromValues(0.002, -0.002, 0)
 			],
-			[vec3.fromValues(0, 0.004, 0),
-			 vec3.fromValues(-m3, 0.004, 0),
-			 vec3.fromValues(-0.002, m3 + 0.002, 0),
-			 vec3.fromValues(-0.002, 0.002, 0)
+			[
+				vec3.fromValues(0.002, -0.002, 0),
+				vec3.fromValues(0.002, -m3 - 0.002, 0),
+				vec3.fromValues(m3, -0.004, 0),
+				vec3.fromValues(0, -0.004, 0)
 			],
-			[vec3.fromValues(-0.002, 0.002, 0),
-			 vec3.fromValues(-0.002, 0.000666, 0),
-			 vec3.fromValues(-0.002, -0.000666, 0),
-			 vec3.fromValues(-0.002, -0.002, 0),
+			[
+				vec3.fromValues(0, -0.004, 0),
+				vec3.fromValues(-m3, -0.004, 0),
+				vec3.fromValues(-0.002, -m3 - 0.002, 0),
+				vec3.fromValues(-0.002, -0.002, 0)
 			],
-			[vec3.fromValues(-0.002, -0.002, 0),
-			 vec3.fromValues(-0.002, -m3 - 0.002, 0),
-			 vec3.fromValues(-m3, -0.004, 0),
-			 vec3.fromValues(0, -0.004, 0)
+			[
+				vec3.fromValues(-0.002, -0.002, 0),
+				vec3.fromValues(-0.002, -0.000666, 0),
+				vec3.fromValues(-0.002, 0.000666, 0),
+				vec3.fromValues(-0.002, 0.002, 0)
 			],
-			[vec3.fromValues(0, -0.004, 0),
-			 vec3.fromValues(m3, -0.004, 0),
-			 vec3.fromValues(0.002, -m3 - 0.002, 0),
-			 vec3.fromValues(0.002, -0.002, 0)
+			[
+				vec3.fromValues(-0.002, 0.002, 0),
+				vec3.fromValues(-0.002, m3 + 0.002, 0),
+				vec3.fromValues(-m3, 0.004, 0),
+				vec3.fromValues(0, 0.004, 0)
 			],
-			[vec3.fromValues(0.002, -0.002, 0),
-			 vec3.fromValues(0.002, -0.000666, 0),
-			 vec3.fromValues(0.002, 0.000666, 0),
-			 vec3.fromValues(0.002, 0.002, 0),
+			[
+				vec3.fromValues(0, 0.004, 0),
+				vec3.fromValues(m3, 0.004, 0),
+				vec3.fromValues(0.002, m3 + 0.002, 0),
+				vec3.fromValues(0.002, 0.002, 0)
 			]
 
 		];
@@ -353,25 +362,29 @@ class HeliceDerecha {
 
 		var controlFormaCirculo1 =
 		[
-			[vec3.fromValues(0.003, 0, 0),
-			 vec3.fromValues(0.003, m4, 0),
-			 vec3.fromValues(m4, 0.003, 0),
-			 vec3.fromValues(0, 0.003, 0)
+			[
+				vec3.fromValues(0.003, 0, 0),
+				vec3.fromValues(0.003, -m4, 0),
+				vec3.fromValues(m4, -0.003, 0),
+				vec3.fromValues(0, -0.003, 0)
 			],
-			[vec3.fromValues(0, 0.003, 0),
-			 vec3.fromValues(-m4, 0.003, 0),
-			 vec3.fromValues(-0.003, m4, 0),
-			 vec3.fromValues(-0.003, 0, 0)
+			[
+				vec3.fromValues(0, -0.003, 0),
+				vec3.fromValues(-m4, -0.003, 0),
+				vec3.fromValues(-0.003, -m4, 0),
+				vec3.fromValues(-0.003, 0, 0)
 			],
-			[vec3.fromValues(-0.003, 0, 0),
-			 vec3.fromValues(-0.003, -m4, 0),
-			 vec3.fromValues(-m4, -0.003, 0),
-			 vec3.fromValues(0, -0.003, 0)
+			[
+				vec3.fromValues(-0.003, 0, 0),
+				vec3.fromValues(-0.003, m4, 0),
+				vec3.fromValues(-m4, 0.003, 0),
+				vec3.fromValues(0, 0.003, 0)
 			],
-			[vec3.fromValues(0, -0.003, 0),
-			 vec3.fromValues(m4, -0.003, 0),
-			 vec3.fromValues(0.003, -m4, 0),
-			 vec3.fromValues(0.003, 0, 0)
+			[
+				vec3.fromValues(0, 0.003, 0),
+				vec3.fromValues(m4, 0.003, 0),
+				vec3.fromValues(0.003, m4, 0),
+				vec3.fromValues(0.003, 0, 0)
 			]
 
 		];
@@ -399,10 +412,11 @@ class HeliceDerecha {
 		//------------------------------Aspas------------------------------------------
 
 		var controlFormaLineal =
-		[vec3.fromValues(-0.002, -0.002, 0),
-		 vec3.fromValues(0, -0.000666, 0),
-		 vec3.fromValues(0, 0.000666, 0),
-		 vec3.fromValues(0.002, 0.002, 0)
+		[
+			vec3.fromValues(0.002, 0.002, 0),
+			vec3.fromValues(0, 0.000666, 0),
+			vec3.fromValues(0, -0.000666, 0),
+			vec3.fromValues(-0.002, -0.002, 0)
 		];
 
 		var formaLineal = new BezierCubic(controlFormaLineal);
@@ -499,25 +513,29 @@ class PatinDeAterrizaje {
 
 		var controlFormaCirculo =
 		[
-			[vec3.fromValues(0.002, 0, 0),
-			 vec3.fromValues(0.002, m1, 0),
-			 vec3.fromValues(m1, 0.002, 0),
-			 vec3.fromValues(0, 0.002, 0)
+			[
+				vec3.fromValues(0.002, 0, 0),
+				vec3.fromValues(0.002, -m1, 0),
+				vec3.fromValues(m1, -0.002, 0),
+				vec3.fromValues(0, -0.002, 0)
 			],
-			[vec3.fromValues(0, 0.002, 0),
-			 vec3.fromValues(-m1, 0.002, 0),
-			 vec3.fromValues(-0.002, m1, 0),
-			 vec3.fromValues(-0.002, 0, 0)
+			[
+				vec3.fromValues(0, -0.002, 0),
+				vec3.fromValues(-m1, -0.002, 0),
+				vec3.fromValues(-0.002, -m1, 0),
+				vec3.fromValues(-0.002, 0, 0)
 			],
-			[vec3.fromValues(-0.002, 0, 0),
-			 vec3.fromValues(-0.002, -m1, 0),
-			 vec3.fromValues(-m1, -0.002, 0),
-			 vec3.fromValues(0, -0.002, 0)
+			[
+				vec3.fromValues(-0.002, 0, 0),
+				vec3.fromValues(-0.002, m1, 0),
+				vec3.fromValues(-m1, 0.002, 0),
+				vec3.fromValues(0, 0.002, 0)
 			],
-			[vec3.fromValues(0, -0.002, 0),
-			 vec3.fromValues(m1, -0.002, 0),
-			 vec3.fromValues(0.002, -m1, 0),
-			 vec3.fromValues(0.002, 0, 0)
+			[
+				vec3.fromValues(0, 0.002, 0),
+				vec3.fromValues(m1, 0.002, 0),
+				vec3.fromValues(0.002, m1, 0),
+				vec3.fromValues(0.002, 0, 0)
 			]
 
 		];
@@ -655,25 +673,29 @@ class Cola {
 
 		var controlFormaCirculo =
 		[
-			[vec3.fromValues(1, 0, 0),
-			 vec3.fromValues(1, magia, 0),
-			 vec3.fromValues(magia, 1, 0),
-			 vec3.fromValues(0, 1, 0)
+			[
+				vec3.fromValues(1, 0, 0),
+				vec3.fromValues(1, -magia, 0),
+				vec3.fromValues(magia, -1, 0),
+				vec3.fromValues(0, -1, 0)
 			],
-			[vec3.fromValues(0, 1, 0),
-			 vec3.fromValues(-magia, 1, 0),
-			 vec3.fromValues(-1, magia, 0),
-			 vec3.fromValues(-1, 0, 0)
+			[
+				vec3.fromValues(0, -1, 0),
+				vec3.fromValues(-magia, -1, 0),
+				vec3.fromValues(-1, -magia, 0),
+				vec3.fromValues(-1, 0, 0)
 			],
-			[vec3.fromValues(-1, 0, 0),
-			 vec3.fromValues(-1, -magia, 0),
-			 vec3.fromValues(-magia, -1, 0),
-			 vec3.fromValues(0, -1, 0)
+			[
+				vec3.fromValues(-1, 0, 0),
+				vec3.fromValues(-1, magia, 0),
+				vec3.fromValues(-magia, 1, 0),
+				vec3.fromValues(0, 1, 0)
 			],
-			[vec3.fromValues(0, -1, 0),
-			 vec3.fromValues(magia, -1, 0),
-			 vec3.fromValues(1, -magia, 0),
-			 vec3.fromValues(1, 0, 0)
+			[
+				vec3.fromValues(0, 1, 0),
+				vec3.fromValues(magia, 1, 0),
+				vec3.fromValues(1, magia, 0),
+				vec3.fromValues(1, 0, 0)
 			]
 
 		];
@@ -701,25 +723,29 @@ class Cola {
 		var e2 = 0.04;
 		var controlFormaCaja =
 		[
-			[vec3.fromValues(1*e2, 1*e2, 0),
-			 vec3.fromValues(0.666*e2, 1*e2, 0),
-			 vec3.fromValues(0.333*e2, 1*e2, 0),
-			 vec3.fromValues(0, 1*e2, 0)
+			[
+				vec3.fromValues(1*e2, 1*e2, 0),
+				vec3.fromValues(0.6666*e2, 0.3333*e2, 0),
+				vec3.fromValues(0.3333*e2, -0.3333*e2, 0),
+				vec3.fromValues(0, -1*e2, 0)
 			],
-			[vec3.fromValues(0, 1*e2, 0),
-			 vec3.fromValues(-0.3333*e2, 0.3333*e2, 0),
-			 vec3.fromValues(-0.6666*e2, -0.3333*e2, 0),
-			 vec3.fromValues(-1*e2, -1*e2, 0)
+			[
+				vec3.fromValues(0, -1*e2, 0),
+				vec3.fromValues(-0.333*e2, -1*e2, 0),
+				vec3.fromValues(-0.666*e2, -1*e2, 0),
+				vec3.fromValues(-1*e2, -1*e2, 0)
 			],
-			[vec3.fromValues(-1*e2, -1*e2, 0),
-			 vec3.fromValues(-0.666*e2, -1*e2, 0),
-			 vec3.fromValues(-0.333*e2, -1*e2, 0),
-			 vec3.fromValues(0, -1*e2, 0)
+			[
+				vec3.fromValues(-1*e2, -1*e2, 0),
+				vec3.fromValues(-0.6666*e2, -0.3333*e2, 0),
+				vec3.fromValues(-0.3333*e2, 0.3333*e2, 0),
+				vec3.fromValues(0, 1*e2, 0)
 			],
-			[vec3.fromValues(0, -1*e2, 0),
-			 vec3.fromValues(0.3333*e2, -0.3333*e2, 0),
-			 vec3.fromValues(0.6666*e2, 0.3333*e2, 0),
-			 vec3.fromValues(1*e2, 1*e2, 0)
+			[
+				vec3.fromValues(0, 1*e2, 0),
+				vec3.fromValues(0.333*e2, 1*e2, 0),
+				vec3.fromValues(0.666*e2, 1*e2, 0),
+				vec3.fromValues(1*e2, 1*e2, 0)
 			]
 		];
 
@@ -736,12 +762,12 @@ class Cola {
 
 		var supPlato = new SuperficieBarrido(formaCaja, recorridoCorto, escaladoTapas);
 
-		var aletaD = new Objeto3D(supPlato, 20, 20, colorControles);
+		var aletaD = new Objeto3D(supPlato, 100, 4, colorControles);
 		aletaD.setPosicion(-0.225, 0, 0.04);
 		this.aletaD = aletaD;
 		this.centro.agregarHijo(aletaD);
 
-		var aletaI = new Objeto3D(supPlato, 20, 20, colorControles);
+		var aletaI = new Objeto3D(supPlato, 100, 4, colorControles);
 		aletaI.setPosicion(-0.225, 0, -0.04);
 		this.aletaI = aletaI;
 		this.centro.agregarHijo(aletaI);
@@ -773,100 +799,3 @@ class Cola {
 	}
 
 }
-/*
-var magia = 0.552284749831;
-var controlFormaCirculo =
-[
-	[vec3.fromValues(1, 0, 0),
-	 vec3.fromValues(1, magia, 0),
-	 vec3.fromValues(magia, 1, 0),
-	 vec3.fromValues(0, 1, 0)
-	],
-	[vec3.fromValues(0, 1, 0),
-	 vec3.fromValues(-magia, 1, 0),
-	 vec3.fromValues(-1, magia, 0),
-	 vec3.fromValues(-1, 0, 0)
-	],
-	[vec3.fromValues(-1, 0, 0),
-	 vec3.fromValues(-1, -magia, 0),
-	 vec3.fromValues(-magia, -1, 0),
-	 vec3.fromValues(0, -1, 0)
-	],
-	[vec3.fromValues(0, -1, 0),
-	 vec3.fromValues(magia, -1, 0),
-	 vec3.fromValues(1, -magia, 0),
-	 vec3.fromValues(1, 0, 0)
-	]
-
-];
-
-var formaCirculo = new CurvaMultiple(controlFormaCirculo, 4);
-
-var controlRecorridoX = [vec3.fromValues(-1, 0, 0),
-						 vec3.fromValues(-0.5, 0, 0),
-						 vec3.fromValues(0.5, 0, 0),
-						 vec3.fromValues(1, 0, 0)
-						]
-
-var recorridoX = new BezierCubic(controlRecorridoX);
-
-var escaladoTapas = function(v){
-	if (v == 0 || v == 1){
-		return [0, 0, 0];
-	}
-	return [1, 1, 1];
-};
-
-var cilindro = new SuperficieBarrido(formaCirculo, recorridoX, escaladoTapas);
-
-var rotor = new Objeto3D(cilindro, 20, 20, [1,1,1]);
-rotor.setEscala(0.015, 0.01, 0.01);
-rotor.setPosicion(0, 0.045, 0.061);
-*/
-
-/*
-var controlFormaElipse =
-[
-	[vec3.fromValues(1, 0, 0),
-	 vec3.fromValues(1, magia/2, 0),
-	 vec3.fromValues(magia, 1, 0),
-	 vec3.fromValues(0, 1, 0)
-	],
-	[vec3.fromValues(0, 1, 0),
-	 vec3.fromValues(-magia, 1, 0),
-	 vec3.fromValues(-1, magia/2, 0),
-	 vec3.fromValues(-1, 0, 0)
-	],
-	[vec3.fromValues(-1, 0, 0),
-	 vec3.fromValues(-1, -magia/2, 0),
-	 vec3.fromValues(-magia, -1, 0),
-	 vec3.fromValues(0, -1, 0)
-	],
-	[vec3.fromValues(0, -1, 0),
-	 vec3.fromValues(magia, -1, 0),
-	 vec3.fromValues(1, -magia/2, 0),
-	 vec3.fromValues(1, 0, 0)
-	]
-
-];
-
-var formaElipse = new CurvaMultiple(controlFormaElipse, 4);
-
-var controlRecorridoZ0 = [vec3.fromValues(0, 0, 0),
-						 vec3.fromValues(0, 0, 0.5),
-						 vec3.fromValues(0, 0, 1),
-						 vec3.fromValues(0, 0, 1.5)
-						]
-
-var recorridoZ0 = new BezierCubic(controlRecorridoZ0);
-
-var escaladoLineal = function(v){
-	var a = 1 - 0.5*v;
-	return [a, a, a];
-}
-
-var seccionCono = new SuperficieBarrido(formaElipse, recorridoZ0, escaladoLineal);
-var brazo = new Objeto3D(seccionCono, 20, 20, [1,1,1]);
-brazo.setEscala(0.01, 0.00666, 0.05);
-brazo.setPosicion(0, 0.045, 0.061);
-*/

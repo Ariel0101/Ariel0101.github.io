@@ -11,6 +11,8 @@ function Camara(){
 	var distancia = 0.5;
 	var velocZoom = 0.01;
 
+	var position = vec3.create();
+
 	$("body").keydown(function(e){
 		switch(e.key){
 			case "1":
@@ -44,6 +46,10 @@ function Camara(){
 				break;
 		}
 	});
+
+	this.getPosition = function(){
+		return position;
+	};
 
 	this.actualizarVista = function(heli, viewMatrix){
 		var pos = heli.getPosition();
@@ -92,7 +98,7 @@ function Camara(){
 
 		vec3.add(eye, eye, center);
 
-		this.eye = eye;
+		position = eye;
 
 		mat4.lookAt(viewMatrix,
 			eye,

@@ -31,7 +31,7 @@ class Agua {
 		this.texture.image.src = archivo_textura;
 	}
 
-	initRefTexture(file){
+	/*initRefTexture(file){
 
 		var texture = gl.createTexture();
 		texture.image = new Image();
@@ -49,9 +49,67 @@ class Agua {
 				gl.bindTexture(gl.TEXTURE_2D, null);
 			};
 		this.refTexture.image.src = file;
+	}*/
+	initRefTexture(mapa){
+		var texture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+		this.refTexture = texture;
+		 
+		const faceInfos = [
+		  {
+		    target: gl.TEXTURE_CUBE_MAP_POSITIVE_X, 
+		    url: mapa.x_pos,
+		  },
+		  {
+		    target: gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 
+		    url: mapa.x_neg,
+		  },
+		  {
+		    target: gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 
+		    url: mapa.y_pos,
+		  },
+		  {
+		    target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 
+		    url: mapa.y_neg,
+		  },
+		  {
+		    target: gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 
+		    url: mapa.z_pos,
+		  },
+		  {
+		    target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 
+		    url: mapa.z_neg,
+		  },
+		];
+		faceInfos.forEach((faceInfo) => {
+		  const {target, url} = faceInfo;
+		 
+		  // Upload the canvas to the cubemap face.
+		  const level = 0;
+		  const internalFormat = gl.RGBA;
+		  const width = 512;
+		  const height = 512;
+		  const format = gl.RGBA;
+		  const type = gl.UNSIGNED_BYTE;
+		 
+		  // setup each face so it's immediately renderable
+		  gl.texImage2D(target, level, internalFormat, width, height, 0, format, type, null);
+		 
+		  // Asynchronously load an image
+		  const image = new Image();
+		  image.src = url;
+		  image.addEventListener('load', function() {
+		    // Now that the image has loaded upload it to the texture.
+		    gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+		    gl.texImage2D(target, level, internalFormat, format, type, image);
+		    gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+		  });
+		});
+		gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+		gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 	}
 
-	dibujarParcela(i, j) {
+	dibujarParcela(i, j, camPosition) {
 
 		if ((i < 0) || (i > (this.cantParcelas - 1))) return;
 		if ((j < 0) || (j > (this.cantParcelas - 1))) return;
@@ -65,11 +123,11 @@ class Agua {
 		var b = 1 - (i / this.cantParcelas);
 
 		setMatrixA(aux, a, b);
-		dibujarMallaA(this.malla, this.texture, this.refTexture);
+		dibujarMallaA(this.malla, this.texture, this.refTexture, camPosition);
 
 	}
 
-	dibujar(posX, posZ){
+	dibujar(posX, posZ, camPosition){
 
 		var i = floor((posX + (this.lado / 2)) / this.ladoParcela);
 		var j = floor((posZ + (this.lado / 2)) / this.ladoParcela);
@@ -77,7 +135,7 @@ class Agua {
 		//Dibujo 5x5 parcelas alrededor de (posX, posZ)
 		for (var m = -2; m < 3; m++){
 			for (var n = -2; n < 3; n++){
-				this.dibujarParcela(i+m, j+n);
+				this.dibujarParcela(i+m, j+n, camPosition);
 			}
 		}
 
@@ -178,9 +236,10 @@ function setMatrixA(mModelado, valorA, valorB){
 
 	gl.uniformMatrix3fv(glProgramA.normalMatrixUniform, false, normalMatrix);
 
+
 }
 
-function dibujarMallaA(malla, textura, refTextura){
+function dibujarMallaA(malla, textura, refTextura, camPosition){
 
 	// Se configuran los buffers que alimentaron el pipeline
 	gl.enableVertexAttribArray(glProgramA.vertexPositionAttribute);
@@ -199,9 +258,9 @@ function dibujarMallaA(malla, textura, refTextura){
 	gl.bindTexture(gl.TEXTURE_2D, textura);
 	gl.uniform1i(glProgramA.sampler, 5);
 
-	gl.activeTexture(gl.TEXTURE6);
-	gl.bindTexture(gl.TEXTURE_2D, refTextura);
-	gl.uniform1i(glProgramA.samplerRef, 6);
+	gl.uniform3fv(glProgramA.uCameraPosition, camPosition);
+
+	gl.uniform1i(glProgramA.samplerRef, 0);
 	   
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, malla.indexBuffer);
 

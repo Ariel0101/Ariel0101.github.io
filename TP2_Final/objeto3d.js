@@ -1,6 +1,6 @@
 class Objeto3D {
 
-	constructor(superficie = null, filas = 20, columnas = 20, color = [1, 1, 1]) {
+	constructor(superficie = null, filas = 20, columnas = 20, color = [1, 1, 1], cabina = false) {
 
 		this.color = vec3.fromValues(...color);
 		this.malla = null;
@@ -15,6 +15,7 @@ class Objeto3D {
 		this.hijos = [];
 
 		this.textura = null;
+		this.cabina = cabina;
 	}
 
 	actualizarMatrizModelado() {
@@ -60,7 +61,7 @@ class Objeto3D {
 
 		if (this.malla){
 			setMatrix(m, this.color);
-			dibujarMalla(this.malla, this.textura);
+			dibujarMalla(this.malla, this.textura, this.cabina);
 		}
 
 		for (var i = 0; i < this.hijos.length; i++){
@@ -186,11 +187,11 @@ function setMatrix(mModelado, color){
 
 	gl.uniform3fv(glProgram.rgb, color);
 	gl.uniform3fv(glProgram.ambientLighting, [0.7, 0.7, 0.7]);
-	gl.uniform3fv(glProgram.lightVec, [1.0, 3.0, 0.0]);
+	gl.uniform3fv(glProgram.lightVec, [-1.0, 0.6, 0.0]);
 	gl.uniform3fv(glProgram.lightColor, [1.0, 1.0, 1.0]);
 }
 
-function dibujarMalla(malla, textura){
+function dibujarMalla(malla, textura, cabina){
 	
 	// Se configuran los buffers que alimentaron el pipeline
 	gl.enableVertexAttribArray(glProgram.vertexPositionAttribute);
@@ -205,6 +206,7 @@ function dibujarMalla(malla, textura){
 	gl.bindBuffer(gl.ARRAY_BUFFER, malla.uvBuffer);
 	gl.vertexAttribPointer(glProgram.vertexUvAttribute, 2, gl.FLOAT, false, 0, 0);
 
+	gl.uniform1i(glProgram.uCabina, cabina);
 	gl.uniform1i(glProgram.useTexture, (textura != null));
 	if (textura){
 		gl.activeTexture(gl.TEXTURE4);
